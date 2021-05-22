@@ -17,6 +17,10 @@ class UpbitRealTimeTradeSubscriber:
         ````
     2. 동기 제너레이터 호출 방식 (for ... in ...)
         ````python
+        subscriber = UpbitRealTimeTradeSubscriber("trade", isOnlyRealtime=True)
+        for message in subscriber:
+            print(message)
+            break
         ````
 
     3. 비동기 방식
