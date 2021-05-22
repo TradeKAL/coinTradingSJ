@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from app.consumer.factory import RabbitMQConsumerFactory
+from app.consumer.factory import RabbitMQConsumerConnector
 from app.publisher import RabbitMQPublisher
 
 
@@ -11,7 +11,7 @@ class TestRabbitMQConsumerFactory(TestCase):
         message = b"hello"
 
         publisher = RabbitMQPublisher(exchange_name)
-        consumer = RabbitMQConsumerFactory(callback_exception, exchange_name)
+        consumer = RabbitMQConsumerConnector(callback_exception, exchange_name)
 
         # publish에 message를 퍼블리싱해둔 상태
         publisher.publish(message)

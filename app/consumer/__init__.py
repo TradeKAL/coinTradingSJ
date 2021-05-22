@@ -1,5 +1,7 @@
-from .factory import RabbitMQConsumerFactory
+from .current_trade import CurrentTradeConsumer
+from .factory import RabbitMQConsumerConnector
 
 __all__ = [
-    "RabbitMQConsumerFactory"
+    "RabbitMQConsumerConnector",
+    "CurrentTradeConsumer"
 ]
