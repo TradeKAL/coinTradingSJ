@@ -29,7 +29,6 @@ class TestRabbitMQPublisher(TestCase):
     def get_channel(self, exchange_name):
         connection = pika.BlockingConnection(pika.ConnectionParameters("localhost"))
         channel = connection.channel()
-        channel.exchange_declare(exchange=exchange_name, exchange_type="fanout")
         result = channel.queue_declare(queue="", exclusive=True)
         channel.queue_bind(exchange="hello", queue=result.method.queue)
         return channel
