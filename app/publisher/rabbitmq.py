@@ -21,6 +21,7 @@ class RabbitMQPublisher:
         self.routing_key = routing_key
         self.host = host
         self.port = port
+        self._open_channel()
 
     def publish(self, message: bytes):
         if self.channel is None or self.channel.is_closed:
