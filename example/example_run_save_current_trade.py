@@ -1,4 +1,4 @@
-from app.consumer import CurrentTradeConsumer
+from app.consumer import CurrentTradeWriteConsumer
 from app.consumer import RabbitMQConsumerConnector
 from app.repository import CurrentTradeRepository
 
@@ -16,7 +16,7 @@ if __name__ == "__main__":
     repository = CurrentTradeRepository()
 
     # broker에서 현재 가격을 받아서 repository에 저장하는 consumer 구성
-    consumer = CurrentTradeConsumer(repository)
+    consumer = CurrentTradeWriteConsumer(repository)
 
     # 브로커에 consumer를 연결한 후, 실행
     RabbitMQConsumerConnector(consumer, exchange_name=f"{category}.{code}").start()
