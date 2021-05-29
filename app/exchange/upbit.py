@@ -1,9 +1,13 @@
 import json
+import time
 import uuid
 
+import requests
 import websockets
 from websocket import WebSocket
 from websocket import create_connection
+
+from app.model.current_trade import SnapShotTrade
 
 
 class UpbitRealTimeTradeSubscriber:
@@ -95,3 +99,28 @@ class UpbitRealTimeTradeSubscriber:
                 "isOnlySnapshot": self.isOnlySnapshot
             }
         ])
+
+
+class UpbitSnapshotTradeSubscriber:
+    """ upbit 서버에 스냅샷 결제 정보를 가져오는 클래스
+    """
+    URL = "https://api.upbit.com/v1/candles/minutes/{}"
+
+    def __init__(self, unit=1, code="KRW-BTC"):
+        """
+        :param unit: 분 간격 (1, 3, 5, 10, 30, 60)
+        :param codes: 수신할 시세 종목 정보 (codes 필드에 명시되는 종목들은 대문자로 요청)
+        """
+        self.unit = unit
+        self.code = code
+
+    def subscribe(self) -> SnapShotTrade:
+        response = requests.get(self.URL.format(self.unit),
+                                params={"market": self.code, "count": 1})
+        trade = SnapShotTrade(**json.loads(response.content)[0])
+
+        if trade.is_recent():
+            return trade
+
+        time.sleep(0.1)
+        return self.subscribe()
