@@ -1,7 +1,10 @@
 import json
 import time
 import uuid
+from datetime import datetime, timedelta
+from typing import List
 
+import pytz
 import requests
 import websockets
 from websocket import WebSocket
@@ -101,10 +104,10 @@ class UpbitRealTimeTradeSubscriber:
         ])
 
 
-class UpbitSnapshotTradeSubscriber:
-    """ upbit 서버에 스냅샷 결제 정보를 가져오는 클래스
+class UpbitSnapshotTradeFinder:
+    """ upbit 서버에 현재 시각 기준 스냅샷 결제 정보를 가져오는 클래스
     """
-    URL = "https://api.upbit.com/v1/candles/minutes/{}"
+    CANDLE_URL = "https://api.upbit.com/v1/candles/minutes/{}"
 
     def __init__(self, unit=1, code="KRW-BTC"):
         """
@@ -114,13 +117,45 @@ class UpbitSnapshotTradeSubscriber:
         self.unit = unit
         self.code = code
 
-    def subscribe(self) -> SnapShotTrade:
-        response = requests.get(self.URL.format(self.unit),
-                                params={"market": self.code, "count": 1})
-        trade = SnapShotTrade(**json.loads(response.content)[0])
+    def find(self, count) -> List[SnapShotTrade]:
+        """ 현재 시각 기준으로 count만큼의 스냅샷 정보를 가져오는 함수
 
-        if trade.is_recent():
-            return trade
+        :param count:
+        :return:
+        """
+        candle = self._get_latest_candle()
+        if count == 1:
+            return [candle]
 
-        time.sleep(0.1)
-        return self.subscribe()
+        result = []
+        to = datetime.now(pytz.timezone("Asia/Seoul"))
+        for _ in range(0, count, 200):
+            # upbit에서는 최대 한번에 200개의 row만 제공하고 있으므로, 200건씩 나누어서 호출해야 함
+            result.extend(sorted(self._get(count, to), key=lambda x: x.candle_date_time_kst, reverse=True))
+            kst = pytz.timezone("Asia/Seoul")
+            # 약간의 시간 차이를 빼내어서 경계시간에 대한 값이 포함되지 않도록 함
+            to = kst.localize(result[-1].candle_date_time_kst) - timedelta(microseconds=1)
+        return result[:count]
+
+    def _get(self, count: int, dt: datetime) -> List[SnapShotTrade]:
+        """ 업비트의 candle 정보를 요청하여 가져오기
+
+        :param count: 갯수
+        :param dt: 시각
+        :return:
+        """
+        response = requests.get(self.CANDLE_URL.format(self.unit),
+                                params={"market": self.code,
+                                        "count": count,
+                                        "to": dt.strftime("%Y-%m-%dT%H:%M:%S") + "+09:00"})
+        return [SnapShotTrade(**row) for row in json.loads(response.content)]
+
+    def _get_latest_candle(self) -> SnapShotTrade:
+        """ 업비트의 candle 정보가 현재 시점 기준으로 업데이트되었는지를 확인
+        :return:
+        """
+        candle = self._get(1, datetime.now(pytz.timezone("Asia/Seoul")))[0]
+        while not candle.is_recent():
+            time.sleep(.1)
+            candle = self._get(1, datetime.now(pytz.timezone("Asia/Seoul")))[0]
+        return candle
